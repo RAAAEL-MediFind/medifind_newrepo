@@ -21,6 +21,9 @@ def show_navbar():
                 ui.link("Shop +", target="/shop").classes(
                     "text-white font-semibold p-2 no-underline"
                 )
+                ui.link("contact", target="/contact").classes(
+                    "text-white font-semibold p-2 no-underline"
+                )
 
             # Right side: Conditional User Actions
             with ui.row().classes("items-center gap-4"):
@@ -58,5 +61,3 @@ def show_navbar():
                 ui.icon("favorite_border", size="md").classes(
                     "hover:text-red-400 cursor-pointer"
                 )
-                with ui.row().classes("items-center"):
-                    ui.icon("shopping_cart", size="md").classes("cursor-pointer")

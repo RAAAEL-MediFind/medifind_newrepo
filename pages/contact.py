@@ -44,7 +44,7 @@ def contact_page():
                 name = ui.input(
                     label="Your Name", placeholder="Enter your name"
                 ).classes(
-                    "w-full bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-400"
+                    "w-full bg-gray-50 border border-gray-3*****00 rounded-xl focus:ring-2 focus:ring-cyan-400"
                 )
                 email = ui.input(
                     label="Your Email", placeholder="Enter your email"
@@ -70,10 +70,5 @@ def contact_page():
                 ui.button("Send Message", on_click=submit).classes(
                     "text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition"
                 ).props("color=teal-600")
-
-        with ui.column().classes("mt-16 px-6 pb-20 items-center"):
-            ui.label("Find Us on the Map").classes(
-                "text-2xl font-semibold text-gray-800 mb-6"
-            )
 
         show_footer()
