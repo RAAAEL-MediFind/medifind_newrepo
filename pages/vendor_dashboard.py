@@ -140,7 +140,9 @@ body {
                 icon="add_circle",
                 on_click=lambda: ui.navigate.to("/create_ad"),
             ).classes(
-                "w-full bg-[#34989e] text-white font-semibold rounded-lg py-2.5 mb-4 hover:bg-[#2d868c]"
+                "w-full text-white font-semibold rounded-lg py-2.5 mb-4 hover:bg-[#2d868c]"
+            ).props(
+                "color=teal-600 unelevated"
             )
             # --- Sidebar Toggle Button (Always on Top) ---
             # --- Sidebar Toggle Button (Always on Top) ---
@@ -179,7 +181,7 @@ body {
 
             ui.button("Logout", icon="logout", on_click=logout).classes(
                 "w-full bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl py-2.5 shadow-md hover:from-red-600 hover:to-red-700"
-            ).props("unelevated")
+            ).props("color=teal600 unelevated")
 
     # === MAIN DASHBOARD CONTENT ===
     with ui.column().classes("w-full p-8 ml-64 bg-sky-50 min-h-screen items-center"):
