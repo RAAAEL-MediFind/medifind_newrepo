@@ -285,58 +285,117 @@ def show_signup_page():
 
                         pharma_latitude = (
                             ui.input(label="Latitude")
-                            .props("outlined readonly")
+                            .props("outlined readonly id=lat_input")
                             .classes("w-full mb-2")
                         )
                         pharma_longitude = (
                             ui.input(label="Longitude")
-                            .props("outlined readonly")
+                            .props("outlined readonly id=lon_input")
                             .classes("w-full mb-4")
                         )
+
+                        # <-- START: NEW PYTHON FUNCTION
+                        # This function will be called from JavaScript
+                        async def handle_map_update(e):
+                            try:
+                                lat = e.args['lat']
+                                lon = e.args['lon']
+                                
+                                # Manually set the value on the Python side
+                                pharma_latitude.set_value(lat)
+                                pharma_longitude.set_value(lon)
+                                
+                                # Also update the visual input fields for the user
+                                await ui.run_javascript(f"""
+                                    document.querySelector('#lat_input input').value = '{lat}';
+                                    document.querySelector('#lon_input input').value = '{lon}';
+                                """)
+                                print(f"Python received coords: {lat}, {lon}")
+                            except Exception as ex:
+                                print(f"Error in handle_map_update: {ex}")
+
+                        # Create an event listener
+                        ui.on('map_update', handle_map_update)
+                        # <-- END: NEW PYTHON FUNCTION
 
                         ui.element("div").classes(
                             "w-full h-[300px] rounded-lg mb-4 border border-gray-200"
                         ).props('id="map"')
 
+                        # <-- START: NEW SCRIPT BLOCK
                         ui.add_head_html(
                             """
-                        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-                        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-                        <script>
-                        document.addEventListener("DOMContentLoaded", function() {
-                            var map = L.map('map').setView([5.6037, -0.1870], 7); // Ghana default
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                maxZoom: 19,
-                                attribution: '© OpenStreetMap contributors'
-                            }).addTo(map);
+                            <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+                            <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+                            <script>
+                                var map;
+                                var marker;
 
-                            var marker;
+                                // This function now sends an event to Python
+                                function updateAndNotifyPython(lat, lon) {
+                                    console.log(`Sending coords to Python: ${lat}, ${lon}`);
+                                    
+                                    // This is the new, reliable way
+                                    // It emits an event that the 'ui.on('map_update', ...)' listener in Python will catch.
+                                    emitEvent('map_update', { lat: lat, lon: lon });
+                                }
 
-                            if (navigator.geolocation) {
-                                navigator.geolocation.getCurrentPosition(function(pos) {
-                                    var lat = pos.coords.latitude.toFixed(6);
-                                    var lon = pos.coords.longitude.toFixed(6);
-                                    map.setView([lat, lon], 14);
-                                    marker = L.marker([lat, lon]).addTo(map)
-                                        .bindPopup("Your current location").openPopup();
-                                    document.querySelector('input[label="Latitude"]').value = lat;
-                                    document.querySelector('input[label="Longitude"]').value = lon;
-                                });
-                            }
+                                function initPharmacyMap() {
+                                    console.log("initPharmacyMap() called.");
+                                    
+                                    if (!document.getElementById('map')) {
+                                        console.log("Map element not found, retrying in 100ms.");
+                                        setTimeout(initPharmacyMap, 100);
+                                        return;
+                                    }
+                                    
+                                    if (map) {
+                                        console.log("Map already initialized, invalidating size.");
+                                        map.invalidateSize();
+                                        return;
+                                    }
 
-                            map.on('click', function(e) {
-                                var lat = e.latlng.lat.toFixed(6);
-                                var lon = e.latlng.lng.toFixed(6);
-                                document.querySelector('input[label="Latitude"]').value = lat;
-                                document.querySelector('input[label="Longitude"]').value = lon;
-                                if (marker) map.removeLayer(marker);
-                                marker = L.marker([lat, lon]).addTo(map)
-                                    .bindPopup(`Selected: ${lat}, ${lon}`).openPopup();
-                            });
-                        });
-                        </script>
-                        """
+                                    console.log("Initializing Leaflet map...");
+                                    map = L.map('map').setView([5.6037, -0.1870], 7); // Ghana default
+                                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                        maxZoom: 19,
+                                        attribution: '© OpenStreetMap contributors'
+                                    }).addTo(map);
+                                    console.log("Map initialized.");
+
+                                    // --- Geolocation ---
+                                    if (navigator.geolocation) {
+                                        console.log("Requesting geolocation...");
+                                        navigator.geolocation.getCurrentPosition(function(pos) {
+                                            var lat = pos.coords.latitude.toFixed(6);
+                                            var lon = pos.coords.longitude.toFixed(6);
+                                            console.log(`Geolocation successful: ${lat}, ${lon}`);
+                                            map.setView([lat, lon], 14);
+                                            marker = L.marker([lat, lon]).addTo(map)
+                                                .bindPopup("Your current location").openPopup();
+                                            updateAndNotifyPython(lat, lon); // Call the new function
+                                        }, function(err) {
+                                            console.warn('Geolocation error: ' + err.message);
+                                        });
+                                    } else {
+                                        console.log("Geolocation not supported by this browser.");
+                                    }
+
+                                    // --- Map Click ---
+                                    map.on('click', function(e) {
+                                        var lat = e.latlng.lat.toFixed(6);
+                                        var lon = e.latlng.lng.toFixed(6);
+                                        console.log(`Map clicked: ${lat}, ${lon}`);
+                                        if (marker) map.removeLayer(marker);
+                                        marker = L.marker([lat, lon]).addTo(map)
+                                            .bindPopup(`Selected: ${lat}, ${lon}`).openPopup();
+                                        updateAndNotifyPython(lat, lon); // Call the new function
+                                    });
+                                }
+                            </script>
+                            """
                         )
+                        # <-- END: NEW SCRIPT BLOCK
 
                         # Flyer upload
                         ui.label("PHARMACY IMAGE (Flyer)").classes(
@@ -418,6 +477,7 @@ def show_signup_page():
                     payload_data, files = {}, {}
 
                     if role == "user":
+                        # <-- SYNTAX ERROR FIXED HERE
                         if user_password.value != user_confirm_password.value:
                             ui.notify("Passwords do not match!", color="negative")
                             return
@@ -434,6 +494,11 @@ def show_signup_page():
                             return
                         if "content" not in uploaded_file_data:
                             ui.notify("Please upload a flyer.", color="negative")
+                            return
+
+                        # This validation will now work correctly
+                        if not pharma_latitude.value or not pharma_longitude.value:
+                            ui.notify("Please select a location on the map.", color="negative")
                             return
 
                         payload_data = {
@@ -484,6 +549,9 @@ def show_signup_page():
                     state["selected_role"] = role
                     user_form.visible = role == "user"
                     pharmacy_form.visible = role == "pharmacy"
+
+                    if role == "pharmacy":
+                        ui.run_javascript("initPharmacyMap()")
 
                 user_button.on("click", lambda: select_role("user"))
                 pharmacy_button.on("click", lambda: select_role("pharmacy"))

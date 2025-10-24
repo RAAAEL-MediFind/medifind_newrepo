@@ -169,7 +169,9 @@ def show_main_page():
                         return
 
                     for pharmacy in pharmacies_list:
-                        name = pharmacy.get("pharmacy_name", "Unknown Pharmacy")
+                        # <-- MODIFIED THIS LINE
+                        name = pharmacy.get("pharmacy_name", "Unknown Pharmacy").upper()
+                        
                         pharmacy_id = pharmacy.get("id")
                         flyer_url = pharmacy.get("flyer")
                         address = pharmacy.get("digital_address", "No address")
