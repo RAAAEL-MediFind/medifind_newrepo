@@ -51,4 +51,4 @@ def show_sidebar():
             ui.button("Logout", icon="logout", on_click=logout).classes(
                 "w-full bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl "
                 "py-2.5 shadow-md hover:from-red-600 hover:to-red-700"
-            ).props("unelevated")
+            ).props("color=teal600")

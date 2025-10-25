@@ -5,21 +5,100 @@ from components.navbar import show_navbar  # Assuming you have this
 from utils.api import base_url
 
 
-# NOTE: Assuming the pharmacy profile page is defined in this file.
 @ui.page("/pharmacy/{pharmacy_id}")
 def show_pharmacy_page(pharmacy_id: str):
     show_navbar()  # Make sure this component exists and is imported
+
     ui.add_head_html(
         """
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+        <style>
+        /* ============================
+           RESPONSIVE MAP & HEADER
+           ============================ */
+        /*
+         * Note: The NiceGUI/Quasar/Tailwind default is flex.
+         * We primarily use the custom CSS to override this for mobile view
+         * when flex-direction: column is needed, and to explicitly hide the map.
+        */
+        
+        /* Mobile View: <= 768px */
+        @media (max-width: 768px) {
+            #map-display {
+                display: none !important; /* Hide map completely on mobile view */
+            }
+
+            /* Apply to the main header row for stacking */
+            .pharmacy-header-row {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+
+            /* Buttons side-by-side on mobile */
+            .pharmacy-buttons {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                width: 100% !important; /* Force full width on mobile */
+                gap: 10px !important;
+                margin-top: 10px !important;
+            }
+
+            .pharmacy-buttons button {
+                flex: 1 !important; /* Distribute space equally */
+                font-size: 0.9rem !important;
+            }
+            
+            /* Pharmacy Name visibility and size on mobile */
+            .pharmacy-name-label {
+                width: 100%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 1.8rem !important; /* Reduced size for mobile */
+                font-weight: 700 !important;
+            }
+        }
+
+        /* Desktop View: >= 769px (Explicitly setting row layout for clarity) */
+        @media (min-width: 769px) {
+            #map-display {
+                display: block !important;
+                height: 200px !important;
+            }
+
+            .pharmacy-header-row {
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+            }
+
+            .pharmacy-buttons {
+                display: flex !important;
+                flex-direction: column !important; /* Stack buttons vertically on desktop */
+                gap: 0.5rem !important;
+            }
+            
+            .pharmacy-name-label {
+                font-size: 2.5rem !important;
+                font-weight: bold !important;
+                white-space: nowrap;
+            }
+        }
+        </style>
     """
     )
 
     # --- Store uploaded prescription file info ---
     uploaded_prescription_info = {"name": None, "content": None, "type": None}
 
-    # --- 1. SIMPLIFIED Message Dialog (No Upload) ---
+    # --- Dialogs (3. and 4. Backend Logic are defined later) ---
+
+    # 1. SIMPLIFIED Message Dialog (No Upload)
+    # ... (Dialog definition is kept as is) ...
     with ui.dialog().classes("text-black") as message_dialog, ui.card().classes(
         "min-w-[500px] p-6"
     ):
@@ -39,7 +118,8 @@ def show_pharmacy_page(pharmacy_id: str):
                 ),
             ).classes("bg-sky-600 text-white")
 
-    # --- 2. SEPARATE Prescription Upload Dialog ---
+    # 2. SEPARATE Prescription Upload Dialog
+    # ... (Dialog definition is kept as is) ...
     with ui.dialog().classes("text-black") as upload_dialog, ui.card().classes(
         "min-w-[500px] p-6"
     ):
@@ -101,7 +181,7 @@ def show_pharmacy_page(pharmacy_id: str):
                 "bg-green-600 text-white"
             )  # Green color for upload action
 
-    # --- 3. SIMPLIFIED Backend Logic for Sending Message (No Prescription) ---
+    # 3. SIMPLIFIED Backend Logic for Sending Message (No Prescription)
     async def send_message(p_id: str, subject_field, message_field, dialog):
         token = app.storage.user.get("access_token")
         if not token:
@@ -154,7 +234,7 @@ def show_pharmacy_page(pharmacy_id: str):
         except requests.RequestException as e:
             ui.notify(f"Connection error: {e}", color="negative")
 
-    # --- 4. SEPARATE Backend Logic for Uploading Prescription ---
+    # 4. SEPARATE Backend Logic for Uploading Prescription
     async def upload_prescription(
         title_field, notes_field, file_info, dialog, uploader
     ):
@@ -220,62 +300,64 @@ def show_pharmacy_page(pharmacy_id: str):
     with ui.column().classes("w-full bg-gray-50 min-h-screen"):
         # Header
         with ui.column().classes("w-full bg-[#00a7b1] text-white p-8 shadow-md"):
+            # Apply the custom class to the main row for responsive layout control
             with ui.row(wrap=False).classes(
-                "w-full max-w-7xl mx-auto items-start justify-between gap-8"
+                "w-full max-w-7xl mx-auto items-start justify-between gap-8 pharmacy-header-row"
             ):
-                # Left Side
+                # Left Side (Name, Address, Buttons)
                 with ui.column().classes("gap-1"):
                     ui.button(
                         "Back to All Pharmacies",
                         on_click=lambda: ui.navigate.to("/"),
                         icon="arrow_back",
                     ).props("flat round text-color=white")
+
+                    # Apply custom class for responsive text handling
                     pharmacy_name_label = ui.label("Loading Pharmacy...").classes(
-                        "text-4xl md:text-5xl font-bold"
+                        "text-4xl md:text-5xl font-bold pharmacy-name-label"
                     )
                     pharmacy_address_label = ui.label("Loading address...").classes(
                         "text-lg opacity-80"
                     )
 
-                    # --- Contact Button Styling using .style() ---
-                    ui.button(
-                        "Contact Pharmacy", icon="mail", on_click=message_dialog.open
-                    ).style(
-                        "margin-top: 1rem; "
-                        "padding: 0.5rem 1.5rem; "
-                        "border-radius: 0.5rem; "
-                        "background-color: white !important; "
-                        "color: #00a7b1 !important; "  # Teal text
-                        "font-weight: bold !important; "
-                        "text-transform: none !important;"
-                        "box-shadow: none !important;"
-                        "z-index: 10;"
-                    )
-                    # --- END OF STYLING ---
+                    # Wrap buttons in a row with the custom class for mobile/desktop control
+                    with ui.row().classes("pharmacy-buttons"):
+                        ui.button(
+                            "Contact Pharmacy",
+                            icon="mail",
+                            on_click=message_dialog.open,
+                        ).style(
+                            "padding: 0.5rem 1.5rem; "
+                            "border-radius: 0.5rem; "
+                            "background-color: white !important; "
+                            "color: #00a7b1 !important; "
+                            "font-weight: bold !important; "
+                            "text-transform: none !important;"
+                            "box-shadow: none !important;"
+                            "z-index: 10;"
+                        )
 
-                    # --- Upload Button Styling using .style() - MATCHING CONTACT ---
-                    ui.button(
-                        "Upload Prescription",
-                        icon="upload_file",
-                        on_click=upload_dialog.open,
-                    ).style(
-                        "margin-top: 0.5rem; "  # Keep slightly less margin
-                        "padding: 0.5rem 1.5rem; "
-                        "border-radius: 0.5rem; "
-                        "background-color: white !important; "  # White background
-                        "color: #00a7b1 !important; "  # Teal text
-                        "font-weight: bold !important; "
-                        "text-transform: none !important;"
-                        "box-shadow: none !important;"
-                        "z-index: 10;"
-                    )
-                    # --- END OF STYLING ---
+                        ui.button(
+                            "Upload Prescription",
+                            icon="upload_file",
+                            on_click=upload_dialog.open,
+                        ).style(
+                            "padding: 0.5rem 1.5rem; "
+                            "border-radius: 0.5rem; "
+                            "background-color: white !important; "
+                            "color: #00a7b1 !important; "
+                            "font-weight: bold !important; "
+                            "text-transform: none !important;"
+                            "box-shadow: none !important;"
+                            "z-index: 10;"
+                        )
 
-                # Right Side
+                # Right Side (Map)
                 with ui.column().classes("w-full md:w-1/3 min-w-[300px]"):
                     ui.label("Location").classes(
                         "text-xl font-semibold opacity-90 mb-2"
                     )
+                    # This element contains the Leaflet map and has the ID #map-display
                     map_container = (
                         ui.element("div")
                         .props('id="map-display"')
@@ -295,24 +377,26 @@ def show_pharmacy_page(pharmacy_id: str):
                 .props("outlined rounded dense clearable")
                 .classes("w-full max-w-xl bg-white mb-8")
             )
+            # This grid is already responsive via Tailwind classes
             medicines_grid = ui.grid().classes(
                 "w-full justify-items-center grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
             )
 
-    # --- Search Logic ---
     def handle_search():
         search_term = search_field.value.lower()
         if medicines_grid:
-            for card in medicines_grid:
-                if hasattr(card, "default_slot") and card.default_slot.children:
+            # Need to use list(medicines_grid) because children collection can change
+            for card in list(medicines_grid.default_slot.children):
+                if hasattr(card, "medicine_name"):
                     medicine_name = getattr(card, "medicine_name", "").lower()
                     card.set_visibility(search_term in medicine_name)
 
     search_field.on("change", handle_search)
 
-    # --- Data Fetching and UI Population Logic ---
+    # --- Data Fetching Logic (Kept as is) ---
     async def fetch_pharmacy_data():
         pharmacy_name = "Pharmacy Details"
+        # --- Fetch Pharmacy Details ---
         try:
             pharmacy_url = f"{base_url}/public/pharmacies/{pharmacy_id}"
             response = await asyncio.to_thread(requests.get, pharmacy_url, timeout=10)
@@ -361,7 +445,7 @@ def show_pharmacy_page(pharmacy_id: str):
                             }}
                         }} catch (e) {{ console.error('Error initializing/updating Leaflet map:', e); }}
                     '''
-                    )  # respond=False removed
+                    )
                 else:
                     map_container.clear()
                     with map_container:
@@ -374,7 +458,7 @@ def show_pharmacy_page(pharmacy_id: str):
                     f"Pharmacy Not Found ({response.status_code})"
                 )
 
-        except requests.RequestException as e:
+        except requests.RequestException:
             pharmacy_name_label.set_text("Connection Error")
 
         # --- Fetch Medicines/Ads ---
@@ -382,7 +466,9 @@ def show_pharmacy_page(pharmacy_id: str):
         try:
             response = await asyncio.to_thread(requests.get, medicines_url, timeout=20)
             try:
-                medicines_grid.clear()
+                # Clear all children from the grid
+                for child in list(medicines_grid.default_slot.children):
+                    child.delete()
             except RuntimeError as e:
                 print(f"Ignoring grid clear for disconnected client: {e}")
                 return
@@ -400,8 +486,9 @@ def show_pharmacy_page(pharmacy_id: str):
 
                     for med in medicines_list:
                         with ui.card().classes(
-                            "w-full shadow-md hover:shadow-lg transition"
+                            "w-full shadow-md hover:shadow-lg transition cursor-pointer"
                         ) as card:
+                            # Attach data for search filtering
                             card.medicine_name = med.get("medicine_name", "")
                             image_path = med.get("flyer")
                             title = med.get("medicine_name", "Medicine")
@@ -417,14 +504,18 @@ def show_pharmacy_page(pharmacy_id: str):
                             ).props("loading=lazy")
                             with ui.card_section():
                                 ui.label(title).classes("font-bold")
-                                ui.label(description).classes("text-sm text-gray-600")
+                                ui.label(description).classes(
+                                    "text-sm text-gray-600 truncate"
+                                )  # Added truncate
                 else:
                     ui.label(
                         f"Could not load medicines/ads ({response.status_code})."
                     ).classes("col-span-full text-red-500")
         except requests.RequestException as e:
             try:
-                medicines_grid.clear()
+                # Clear all children from the grid
+                for child in list(medicines_grid.default_slot.children):
+                    child.delete()
                 with medicines_grid:
                     ui.label(f"Connection error fetching medicines/ads: {e}").classes(
                         "col-span-full text-red-500"
@@ -432,8 +523,4 @@ def show_pharmacy_page(pharmacy_id: str):
             except RuntimeError as re:
                 print(f"Ignoring grid clear for disconnected client: {re}")
 
-    # Fetch all data when the page loads
     ui.timer(0.1, fetch_pharmacy_data, once=True)
-
-
-# ... (rest of your home.py if any) ...
